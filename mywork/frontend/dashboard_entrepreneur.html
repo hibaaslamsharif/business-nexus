@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrepreneur Dashboard - Business Nexus</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="brand">Business Nexus</div>
+      <button id="logoutBtn" class="button small">Logout</button>
+    </nav>
+    <div class="layout">
+      <aside class="sidebar">
+        <ul>
+          <li>Overview</li>
+          <li>Pitches</li>
+          <li>Messages</li>
+        </ul>
+      </aside>
+      <main class="content">
+        <h2>Entrepreneur Dashboard</h2>
+        <p>Welcome, <span id="username"></span>.</p>
+        <p>Role: <strong id="role"></strong></p>
+        <div id="requests" class="stack"></div>
+      </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+      const token = localStorage.getItem('token');
+      const role = localStorage.getItem('role');
+      const username = localStorage.getItem('username') || '';
+      if (!token || role !== 'entrepreneur') {
+        window.location.href = '/login/';
+      }
+      document.getElementById('role').textContent = role || '';
+      document.getElementById('username').textContent = username;
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = '/login/';
+      });
+      Dashboard.loadRequests();
+    </script>
+  </body>
+  </html>
+
+

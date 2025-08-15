@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - Business Nexus</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">Business Nexus</div>
+    <div>
+      <a class="button secondary" href="/">Home</a>
+    </div>
+  </nav>
+  <div class="container">
+    <h2>Edit Profile</h2>
+    <form id="editProfileForm" class="form">
+      <label>Bio</label>
+      <textarea name="bio"></textarea>
+
+      <h3>Entrepreneur</h3>
+      <label>Startup Name</label>
+      <input name="startup_name" />
+      <label>Startup Description</label>
+      <textarea name="startup_description"></textarea>
+      <label>Funding Need</label>
+      <input name="funding_need" type="number" step="0.01" />
+      <label>Pitch Deck URL</label>
+      <input name="pitch_deck_url" type="url" />
+
+      <h3>Investor</h3>
+      <label>Investment Interests</label>
+      <textarea name="investment_interests"></textarea>
+      <label>Portfolio Companies</label>
+      <textarea name="portfolio_companies"></textarea>
+
+      <button type="submit" class="button">Save</button>
+    </form>
+  </div>
+  <script src="/static/js/app.js"></script>
+  <script>
+    Dashboard.initEditProfile();
+  </script>
+</body>
+</html>
+
