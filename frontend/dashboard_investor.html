@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Investor Dashboard - Business Nexus</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
   </head>
   <body>
     <nav class="navbar">
@@ -14,16 +14,66 @@
     <div class="layout">
       <aside class="sidebar">
         <ul>
-          <li>Overview</li>
-          <li>Portfolio</li>
-          <li>Opportunities</li>
+          <li><a href="#overview" onclick="showSection('overview')">Overview</a></li>
+          <li><a href="#portfolio" onclick="showSection('portfolio')">Portfolio</a></li>
+          <li><a href="#opportunities" onclick="showSection('opportunities')">Opportunities</a></li>
+          <li><a href="#messages" onclick="showSection('messages')">Messages</a></li>
         </ul>
       </aside>
       <main class="content">
         <h2>Investor Dashboard</h2>
-        <p>Welcome, <span id="username"></span>.</p>
-        <p>Role: <strong id="role"></strong></p>
-        <div class="card">Dummy content for investor dashboard.</div>
+        <p class="welcome-text">Welcome, <span id="username"></span>!</p>
+        <p>Role: <span class="role-badge" id="role"></span></p>
+        <!-- Overview Section -->
+        <div id="overview" class="section active">
+          <div class="card">
+            <h3>Investment Opportunities</h3>
+            <p>Browse and evaluate startup pitches from entrepreneurs.</p>
+            <div class="actions">
+              <a href="#opportunities" onclick="showSection('opportunities')" class="button">View Opportunities</a>
+              <a href="#portfolio" onclick="showSection('portfolio')" class="button secondary">My Portfolio</a>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Available Entrepreneurs</h3>
+            <div id="entrepreneursList">
+              <p>Loading entrepreneurs...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Portfolio Section -->
+        <div id="portfolio" class="section" style="display: none;">
+          <div class="card">
+            <h3>My Investment Portfolio</h3>
+            <p>Track your current investments and their performance.</p>
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <p>No investments yet. Start investing in promising startups!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Opportunities Section -->
+        <div id="opportunities" class="section" style="display: none;">
+          <div class="card">
+            <h3>Investment Opportunities</h3>
+            <p>Discover new startups looking for investment.</p>
+            <div id="opportunitiesList">
+              <p>Loading opportunities...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Section -->
+        <div id="messages" class="section" style="display: none;">
+          <div class="card">
+            <h3>Recent Messages</h3>
+            <p>Your chat history and collaboration requests.</p>
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <p>No recent messages. Start chatting with entrepreneurs!</p>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
 
@@ -32,14 +82,133 @@
       const role = localStorage.getItem('role');
       const username = localStorage.getItem('username') || '';
       if (!token || role !== 'investor') {
-        window.location.href = 'login.html';
+        window.location.href = '/login_simple/';
       }
       document.getElementById('role').textContent = role || '';
       document.getElementById('username').textContent = username;
       document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.clear();
-        window.location.href = 'login.html';
+        window.location.href = '/login_simple/';
       });
+
+      // Load entrepreneurs
+      async function loadEntrepreneurs() {
+        try {
+          const response = await fetch('/api/entrepreneurs/');
+          const data = await response.json();
+          
+          if (data.success) {
+            const container = document.getElementById('entrepreneursList');
+            container.innerHTML = '';
+            
+            if (data.entrepreneurs.length === 0) {
+              container.innerHTML = '<p>No entrepreneurs available yet.</p>';
+              return;
+            }
+            
+            data.entrepreneurs.forEach(entrepreneur => {
+              const entrepreneurDiv = document.createElement('div');
+              entrepreneurDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg);';
+              
+              entrepreneurDiv.innerHTML = `
+                <div>
+                  <strong>${entrepreneur.username}</strong>
+                  <br>
+                  <small style="color: var(--muted);">Joined: ${entrepreneur.date_joined}</small>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="button" onclick="window.location.href='/chat_simple/${entrepreneur.id}/'">Chat</button>
+                  <button class="button small secondary" onclick="sendRequest(${entrepreneur.id}, '${entrepreneur.username}')">Send Request</button>
+                </div>
+              `;
+              
+              container.appendChild(entrepreneurDiv);
+            });
+          }
+        } catch (error) {
+          console.error('Error loading entrepreneurs:', error);
+          document.getElementById('entrepreneursList').innerHTML = '<p>Error loading entrepreneurs.</p>';
+        }
+      }
+
+      async function sendRequest(entrepreneurId, entrepreneurName) {
+        const message = prompt(`Send collaboration request to ${entrepreneurName}:`, 'I am interested in investing in your startup. Let\'s discuss!');
+        
+        if (message) {
+          try {
+            const currentUserId = getCurrentUserId();
+            const response = await fetch('/api/send-request/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                investor_id: currentUserId,
+                entrepreneur_id: entrepreneurId,
+                message: message
+              })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+              alert(`Collaboration request sent to ${entrepreneurName}!`);
+            } else {
+              alert('Failed to send request: ' + result.error);
+            }
+          } catch (error) {
+            console.error('Error sending request:', error);
+            alert('Error sending request');
+          }
+        }
+      }
+      
+      function getCurrentUserId() {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.user_id;
+          } catch (e) {
+            console.error('Error parsing token:', e);
+          }
+        }
+        return 1;
+      }
+
+      // Section navigation function
+      function showSection(sectionId) {
+        // Hide all sections
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(section => {
+          section.style.display = 'none';
+        });
+        
+        // Show selected section
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+          targetSection.style.display = 'block';
+        }
+        
+        // Update active sidebar link
+        const sidebarLinks = document.querySelectorAll('.sidebar a');
+        sidebarLinks.forEach(link => {
+          link.classList.remove('active');
+        });
+        
+        const activeLink = document.querySelector(`.sidebar a[href="#${sectionId}"]`);
+        if (activeLink) {
+          activeLink.classList.add('active');
+        }
+        
+        // Load section-specific content
+        if (sectionId === 'opportunities') {
+          loadEntrepreneurs(); // Load entrepreneurs in opportunities section
+        }
+      }
+
+      // Load entrepreneurs on page load
+      loadEntrepreneurs();
     </script>
   </body>
   </html>

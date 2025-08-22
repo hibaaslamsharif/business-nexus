@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 
 from .models import Profile, CollaborationRequest
 from .serializers import ProfileSerializer, CollaborationRequestSerializer, UserSerializer
@@ -183,3 +183,11 @@ class CollaborationRequestUpdateView(APIView):
         collab.status = status_value
         collab.save()
         return Response(CollaborationRequestSerializer(collab).data)
+
+
+def chat_view(request, user_id):
+    return render(request, 'chat.html')
+
+
+def chat_simple_view(request, user_id):
+    return render(request, 'chat_simple.html')

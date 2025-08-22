@@ -25,10 +25,10 @@ SECRET_KEY = 'django-insecure-7cyr$ynf0^6ngz_y8ud80*)vr3v6^5!*)jvc41n_&9$^u()hr8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
+    'http://127.0.0.1:8001',
+    'http://localhost:8001',
 ]
 
 
@@ -41,15 +41,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -60,7 +61,7 @@ ROOT_URLCONF = 'mywork.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'frontend'],
+        'DIRS': [BASE_DIR.parent / 'frontend'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,11 +125,24 @@ STATIC_URL = 'static/'
 
 # Additional static files directories for development
 STATICFILES_DIRS = [
-    BASE_DIR / 'frontend',
+    BASE_DIR.parent / 'frontend',
 ]
 
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
+
+# MongoDB Configuration
+import pymongo
+MONGO_CLIENT = pymongo.MongoClient('mongodb://localhost:27017/')
+MONGO_DB = MONGO_CLIENT['business_nexus_chat']
+
+# CORS Settings
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:8001",
+    "http://localhost:8001",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

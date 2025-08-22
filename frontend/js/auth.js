@@ -1,9 +1,20 @@
-const API_BASE = (() => {
-  const host = window.location.hostname || '127.0.0.1';
-  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  const port = '8000';
-  return `${protocol}://${host}:${port}`;
-})();
+const API_BASE = '';
+
+// Helper function to get CSRF token
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
 
 // Register
 const registerForm = document.getElementById('registerForm');
@@ -17,24 +28,53 @@ if (registerForm) {
       role: document.getElementById('role').value,
     };
     try {
-      const res = await fetch(`${API_BASE}/auth/register/`, {
+      console.log('Sending registration request to:', '/auth/register/');
+      console.log('Payload:', payload);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const res = await fetch('/auth/register/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(payload),
+        credentials: 'same-origin'
       });
+      
+      clearTimeout(timeoutId);
+      console.log('Response status:', res.status);
+      console.log('Response ok:', res.ok);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.log('Error response:', errorText);
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Registration failed');
+      console.log('Response data:', data);
+      
       localStorage.setItem('token', data.access);
       localStorage.setItem('role', data.role);
       localStorage.setItem('username', data.username || payload.username);
       alert('Registration successful! Redirecting to dashboard...');
       if (data.role === 'investor') {
-        window.location.href = 'dashboard_investor.html';
+        window.location.href = '/dashboard_investor/';
       } else {
-        window.location.href = 'dashboard_entrepreneur.html';
+        window.location.href = '/dashboard_entrepreneur/';
       }
     } catch (err) {
-      alert(err.message);
+      console.error('Registration error:', err);
+      if (err.name === 'AbortError') {
+        alert('Registration timed out. Please try again.');
+      } else if (err.message.includes('Failed to fetch')) {
+        alert('Network error. Please check if the server is running and try again.');
+      } else {
+        alert('Registration failed: ' + err.message);
+      }
     }
   });
 }
@@ -60,9 +100,9 @@ if (loginForm) {
       localStorage.setItem('role', data.role);
       localStorage.setItem('username', data.username || '');
       if (data.role === 'investor') {
-        window.location.href = 'dashboard_investor.html';
+        window.location.href = '/dashboard_investor/';
       } else {
-        window.location.href = 'dashboard_entrepreneur.html';
+        window.location.href = '/dashboard_entrepreneur/';
       }
     } catch (err) {
       alert(err.message);

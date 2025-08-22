@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrepreneur Dashboard - Business Nexus</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
   </head>
   <body>
     <nav class="navbar">
@@ -14,16 +14,64 @@
     <div class="layout">
       <aside class="sidebar">
         <ul>
-          <li>Overview</li>
-          <li>Pitches</li>
-          <li>Messages</li>
+          <li><a href="#overview" onclick="showSection('overview')">Overview</a></li>
+          <li><a href="#pitches" onclick="showSection('pitches')">Pitches</a></li>
+          <li><a href="#requests" onclick="showSection('requests')">Requests</a></li>
+          <li><a href="#messages" onclick="showSection('messages')">Messages</a></li>
         </ul>
       </aside>
       <main class="content">
         <h2>Entrepreneur Dashboard</h2>
-        <p>Welcome, <span id="username"></span>.</p>
-        <p>Role: <strong id="role"></strong></p>
-        <div class="card">Dummy content for entrepreneur dashboard.</div>
+        <p class="welcome-text">Welcome, <span id="username"></span>!</p>
+        <p>Role: <span class="role-badge" id="role"></span></p>
+        <!-- Overview Section -->
+        <div id="overview" class="section active">
+          <div class="card">
+            <h3>Available Investors</h3>
+            <div id="investorsList">
+              <p>Loading investors...</p>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Quick Stats</h3>
+            <p>Your startup progress and investor connections.</p>
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <p>Build your profile to attract more investors!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pitches Section -->
+        <div id="pitches" class="section" style="display: none;">
+          <div class="card">
+            <h3>My Pitches</h3>
+            <p>Manage your startup pitches and presentations.</p>
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <p>No pitches created yet. Create your first pitch to attract investors!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Requests Section -->
+        <div id="requests" class="section" style="display: none;">
+          <div class="card">
+            <h3>Collaboration Requests</h3>
+            <div id="requestsList">
+              <p>Loading requests...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Section -->
+        <div id="messages" class="section" style="display: none;">
+          <div class="card">
+            <h3>Recent Messages</h3>
+            <p>Your chat history and communications.</p>
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <p>No recent messages. Start networking with investors!</p>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
 
@@ -32,14 +80,183 @@
       const role = localStorage.getItem('role');
       const username = localStorage.getItem('username') || '';
       if (!token || role !== 'entrepreneur') {
-        window.location.href = 'login.html';
+        window.location.href = '/login_simple/';
       }
       document.getElementById('role').textContent = role || '';
       document.getElementById('username').textContent = username;
       document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.clear();
-        window.location.href = 'login.html';
+        window.location.href = '/login_simple/';
       });
+
+      // Load investors
+      async function loadInvestors() {
+        try {
+          const response = await fetch('/api/investors/');
+          const data = await response.json();
+          
+          if (data.success) {
+            const container = document.getElementById('investorsList');
+            container.innerHTML = '';
+            
+            if (data.investors.length === 0) {
+              container.innerHTML = '<p>No investors available yet.</p>';
+              return;
+            }
+            
+            data.investors.forEach(investor => {
+              const investorDiv = document.createElement('div');
+              investorDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg);';
+              
+              investorDiv.innerHTML = `
+                <div>
+                  <strong>${investor.username}</strong>
+                  <br>
+                  <small style="color: var(--muted);">Joined: ${investor.date_joined}</small>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="button" onclick="window.location.href='/chat_simple/${investor.id}/'">Chat</button>
+                  <button class="button small secondary" onclick="sendPitch(${investor.id}, '${investor.username}')">Send Pitch</button>
+                </div>
+              `;
+              
+              container.appendChild(investorDiv);
+            });
+          }
+        } catch (error) {
+          console.error('Error loading investors:', error);
+          document.getElementById('investorsList').innerHTML = '<p>Error loading investors.</p>';
+        }
+      }
+
+      function sendPitch(investorId, investorName) {
+        alert(`Pitch feature coming soon! You want to pitch to ${investorName}.`);
+      }
+
+      // Load collaboration requests
+      async function loadCollaborationRequests() {
+        try {
+          const currentUserId = getCurrentUserId();
+          const response = await fetch(`/api/requests/?user_id=${currentUserId}&role=entrepreneur`);
+          const data = await response.json();
+          
+          if (data.success) {
+            const container = document.getElementById('requestsList');
+            container.innerHTML = '';
+            
+            if (data.requests.length === 0) {
+              container.innerHTML = '<p>No collaboration requests yet.</p>';
+              return;
+            }
+            
+            data.requests.forEach(request => {
+              const requestDiv = document.createElement('div');
+              requestDiv.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg);';
+              
+              const statusColor = request.status === 'Pending' ? '#ffc107' : 
+                                 request.status === 'Accepted' ? '#28a745' : '#dc3545';
+              
+              requestDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                  <div>
+                    <strong>From: ${request.investor_name}</strong>
+                    <br>
+                    <small style="color: var(--muted);">${request.created_at}</small>
+                    <br>
+                    <p style="margin: 8px 0;">${request.message}</p>
+                    <span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">
+                      ${request.status}
+                    </span>
+                  </div>
+                  ${request.status === 'Pending' ? `
+                    <div style="display: flex; gap: 8px;">
+                      <button class="button small" onclick="updateRequest(${request.id}, 'Accepted')">Accept</button>
+                      <button class="button small secondary" onclick="updateRequest(${request.id}, 'Rejected')">Reject</button>
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+              
+              container.appendChild(requestDiv);
+            });
+          }
+        } catch (error) {
+          console.error('Error loading requests:', error);
+          document.getElementById('requestsList').innerHTML = '<p>Error loading requests.</p>';
+        }
+      }
+
+      async function updateRequest(requestId, status) {
+        try {
+          const response = await fetch(`/api/request/${requestId}/`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            alert(`Request ${status.toLowerCase()} successfully!`);
+            loadCollaborationRequests(); // Reload requests
+          } else {
+            alert('Failed to update request: ' + result.error);
+          }
+        } catch (error) {
+          console.error('Error updating request:', error);
+          alert('Error updating request');
+        }
+      }
+
+      function getCurrentUserId() {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.user_id;
+          } catch (e) {
+            console.error('Error parsing token:', e);
+          }
+        }
+        return 1;
+      }
+
+      // Section navigation function
+      function showSection(sectionId) {
+        // Hide all sections
+        const sections = document.querySelectorAll('.section');
+        sections.forEach(section => {
+          section.style.display = 'none';
+        });
+        
+        // Show selected section
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+          targetSection.style.display = 'block';
+        }
+        
+        // Update active sidebar link
+        const sidebarLinks = document.querySelectorAll('.sidebar a');
+        sidebarLinks.forEach(link => {
+          link.classList.remove('active');
+        });
+        
+        const activeLink = document.querySelector(`.sidebar a[href="#${sectionId}"]`);
+        if (activeLink) {
+          activeLink.classList.add('active');
+        }
+        
+        // Load section-specific content
+        if (sectionId === 'requests') {
+          loadCollaborationRequests();
+        }
+      }
+
+      // Load investors and requests on page load
+      loadInvestors();
+      loadCollaborationRequests();
     </script>
   </body>
   </html>

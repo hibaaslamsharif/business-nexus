@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Business Nexus</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .users-table {
+            width: 100%;
+            background: var(--panel);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .table-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+        }
+        .user-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr 100px;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+        .user-row:hover {
+            background: var(--hover);
+        }
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .role-investor {
+            background: var(--accent);
+            color: white;
+        }
+        .role-entrepreneur {
+            background: var(--primary);
+            color: white;
+        }
+        .delete-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="brand">Business Nexus - Admin Panel</div>
+        <div>
+            <a href="/" class="button small">Back to Home</a>
+            <button id="refreshBtn" class="button small">Refresh</button>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <h1>User Management</h1>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalUsers">-</div>
+                <div>Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalInvestors">-</div>
+                <div>Investors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalEntrepreneurs">-</div>
+                <div>Entrepreneurs</div>
+            </div>
+        </div>
+
+        <div class="users-table">
+            <div class="table-header user-row">
+                <div>Username</div>
+                <div>Email</div>
+                <div>Role</div>
+                <div>Joined</div>
+                <div>Status</div>
+                <div>Action</div>
+            </div>
+            <div id="usersContainer">
+                <div class="loading">Loading users...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/users/stats/');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.stats.total_users;
+                    document.getElementById('totalInvestors').textContent = data.stats.investors;
+                    document.getElementById('totalEntrepreneurs').textContent = data.stats.entrepreneurs;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users/list/');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('usersContainer');
+                    container.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const userRow = document.createElement('div');
+                        userRow.className = 'user-row';
+                        
+                        const roleClass = user.role === 'investor' ? 'role-investor' : 
+                                         user.role === 'entrepreneur' ? 'role-entrepreneur' : '';
+                        
+                        userRow.innerHTML = `
+                            <div>${user.username}</div>
+                            <div>${user.email}</div>
+                            <div><span class="role-badge ${roleClass}">${user.role}</span></div>
+                            <div>${user.date_joined}</div>
+                            <div>${user.is_active ? 'Active' : 'Inactive'}</div>
+                            <div>
+                                <button class="delete-btn" onclick="deleteUser(${user.id}, '${user.username}')">
+                                    Delete
+                                </button>
+                            </div>
+                        `;
+                        
+                        container.appendChild(userRow);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersContainer').innerHTML = 
+                    '<div class="loading">Error loading users</div>';
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/users/delete/${userId}/`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`User "${username}" deleted successfully`);
+                    loadUsers();
+                    loadStats();
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Error deleting user');
+            }
+        }
+
+        function refreshData() {
+            loadStats();
+            loadUsers();
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadUsers();
+        });
+
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    </script>
+</body>
+</html>
