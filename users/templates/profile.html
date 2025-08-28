@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - {{ profile.user.username }} | Business Nexus{% endblock %}
+
+{% block content %}
+<div class="row" style="--border:rgba(255,255,255,0.08); --panel:#0f172a; --bg:#0b1220; --text:#e5e7eb; --muted:#94a3b8;">
+        <div class="col-md-10 offset-md-1">
+                <div class="card" style="border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--panel); color:var(--text);">
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); background:linear-gradient(135deg,#0b1220,#0f172a);">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <div style="width:48px; height:48px; border-radius:12px; background:#1f2937; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                                        {{ profile.user.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <div style="font-size:18px; font-weight:700;">{{ profile.user.username }}</div>
+                                        <div style="font-size:12px; color:var(--muted);">{{ profile.user.get_role_display }}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+                                    {% if request.user.is_authenticated and request.user.id == profile.user.id %}
+                                    <a href="{% url 'profile_edit' %}" class="btn btn-primary">Edit Profile</a>
+                                    {% endif %}
+                                </div>
+                        </div>
+                        <div class="card-body" style="background:var(--bg);">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <img src="https://via.placeholder.com/150" class="rounded-circle mb-3" alt="{{ profile.user.username }}">
+                            <h4>{{ profile.user.username }}</h4>
+                            <p class="text-muted">{{ profile.user.get_role_display }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <h5>Personal Information</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Email:</strong> {{ profile.user.email }}</p>
+                                {% if profile.startup_name %}
+                                    <p><strong>Startup Name:</strong> {{ profile.startup_name }}</p>
+                                {% endif %}
+                                {% if profile.bio %}
+                                    <p><strong>Bio:</strong> {{ profile.bio }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                {% if profile.user.role == 'entrepreneur' and profile.funding_need %}
+                                    <p><strong>Funding Need:</strong> ${{ profile.funding_need }}</p>
+                                {% endif %}
+                                {% if profile.user.role == 'investor' and profile.investment_interests %}
+                                    <p><strong>Investment Interests:</strong> {{ profile.investment_interests }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+            <div class="row">
+                            <div class="col-md-12">
+                <p class="text-muted" style="font-size: 0.9rem;">Profile views: <span data-profile-views>{{ profile.views.count }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5>About</h5>
+                    <hr>
+                    {% if profile.user.role == 'entrepreneur' and profile.startup_description %}
+                        <p>{{ profile.startup_description }}</p>
+                    {% elif profile.user.role == 'investor' and profile.portfolio_companies %}
+                        <p><strong>Portfolio Companies:</strong> {{ profile.portfolio_companies }}</p>
+                    {% else %}
+                        <p class="text-muted">No additional information provided.</p>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4" style="display:flex; gap:8px;">
+                    {% if request.user.is_authenticated and request.user.id == profile.user.id %}
+                        <a href="{% url 'profile_edit' %}" class="btn btn-primary">Edit Profile</a>
+                    {% endif %}
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary">Back</a>
+                </div>
+                
+                                <div class="mt-4">
+                    <h5>Recent Viewers</h5>
+                    <hr>
+                                        <ul id="recentViewers">
+                                                {% with views=profile.views.all %}
+                                                        {% if views %}
+                                                                {% for v in views|slice:":10" %}
+                                                                        <li>{{ v.viewer.username }} — {{ v.viewed_at }}</li>
+                                                                {% endfor %}
+                                                        {% else %}
+                                                                <li class="text-muted">No viewers yet.</li>
+                                                        {% endif %}
+                                                {% endwith %}
+                                        </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% block extra_js %}
+<script>
+(function(){
+    try {
+        const token = localStorage.getItem('token');
+        const uid = '{{ profile.user.id }}';
+        if (!token || !uid) return;
+        fetch(`/api/profile/${uid}/`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(async (res) => { try { return await res.json(); } catch { return null; } })
+            .then((data) => {
+                if (!data) return;
+                const vc = document.querySelector('[data-profile-views]');
+                if (vc && typeof data.view_count !== 'undefined') { vc.textContent = String(data.view_count); }
+                if (Array.isArray(data.recent_viewers)) {
+                    const ul = document.getElementById('recentViewers');
+                    if (ul) {
+                        ul.innerHTML = data.recent_viewers.length ? data.recent_viewers.map(v => `<li>${v.username} — ${new Date(v.viewed_at).toLocaleString()}</li>`).join('') : '<li class="text-muted">No viewers yet.</li>';
+                    }
+                }
+            })
+            .catch(()=>{});
+    } catch (e) {}
+})();
+</script>
+{% endblock %}
+{% endblock %}

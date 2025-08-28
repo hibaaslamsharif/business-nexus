@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Business Nexus{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h4 class="card-title">Welcome, {{ user.username }}!</h4>
+                    <p class="text-muted">{{ user_type }}</p>
+                    <a href="{% url 'profile' %}" class="btn btn-primary mt-3">View Profile</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if user.role == 'entrepreneur' %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5>Find Investors</h5>
+                                    <p>Connect with potential investors for your business.</p>
+                                    <a href="{% url 'api_investors' %}" class="btn btn-outline-primary">Browse Investors</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5>My Pitches</h5>
+                                    <p>Manage your business pitches and funding requests.</p>
+                                    <a href="#" class="btn btn-outline-primary">View Pitches</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5>Find Startups</h5>
+                                    <p>Discover promising startups to invest in.</p>
+                                    <a href="{% url 'api_entrepreneurs' %}" class="btn btn-outline-primary">Browse Startups</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5>My Investments</h5>
+                                    <p>Track your current investments and returns.</p>
+                                    <a href="#" class="btn btn-outline-primary">View Portfolio</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

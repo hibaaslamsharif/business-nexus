@@ -1,0 +1,34 @@
+:root { --primary: #2f6fed; --bg: #0f172a; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --accent: #10b981; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+.container { max-width: 480px; margin: 64px auto; background: var(--panel); padding: 32px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+h1, h2 { margin-top: 0; }
+.actions { display: flex; gap: 12px; }
+.button { background: var(--primary); color: white; padding: 10px 16px; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; display: inline-block; }
+.button.secondary { background: #334155; }
+.button.small { padding: 6px 10px; }
+.form { display: grid; gap: 10px; }
+label { color: var(--muted); font-size: 14px; }
+input, select { padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; color: var(--text); }
+
+.navbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #0b1220; border-bottom: 1px solid #1f2937; position: sticky; top: 0; }
+.brand { font-weight: 700; }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 50px); }
+.sidebar { background: #0b1220; border-right: 1px solid #1f2937; padding: 16px; }
+.sidebar ul { list-style: none; padding: 0; margin: 0; }
+.sidebar li { padding: 8px 6px; color: var(--muted); }
+.content { padding: 24px; }
+.card { background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin-top: 12px; }
+
+@media (max-width: 800px) { .layout { grid-template-columns: 1fr; } .sidebar { display: none; } .container { margin: 24px; } }
+
+
+/* New */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.stack { display: grid; gap: 12px; }
+.badge { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; margin-top: 8px; }
+.badge-pending { background: #334155; color: #e5e7eb; }
+.badge-accepted { background: #10b981; color: white; }
+.badge-rejected { background: #ef4444; color: white; }
+textarea { padding: 10px 12px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; color: var(--text); min-height: 80px; }
+h3 { margin-top: 16px; }
