@@ -35,13 +35,21 @@ SECRET_KEY = 'django-insecure-7cyr$ynf0^6ngz_y8ud80*)vr3v6^5!*)jvc41n_&9$^u()hr8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '0.0.0.0',
+    'business-nexus.onrender.com'
+]
+
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://127.0.0.1:8001',
     'http://localhost:8001',
+    'https://business-nexus.onrender.com'
 ]
+
 
 
 # Application definition
