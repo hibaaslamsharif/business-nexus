@@ -46,65 +46,61 @@ def serve_react(request, path=''):
     return serve(request, 'index.html', document_root=settings.FRONTEND_DIR)
 
 def serve_frontend(request, path=''):
-    """Serve frontend files with proper content types and pretty URL support"""
-    # Default to index.html
-    if path in ('', '/'):  
+    """Serve frontend assets with SPA fallback. Always return an HttpResponse."""
+    import mimetypes
+
+    # 1) Resolve the candidate file relative to FRONTEND_DIR
+    if path in ('', '/'):  # root
         candidate = 'index.html'
     else:
-        # Normalize and try to resolve pretty URLs to .html files
         normalized = path.lstrip('/')
-        # If it's a directory-style path (no extension), try .html
         root, ext = os.path.splitext(normalized)
-        candidates = [normalized]
+        # Prefer pretty URL .html first, then literal path, then SPA index
+        candidates = []
         if not ext:
-            candidates.insert(0, f"{normalized.rstrip('/')}.html")
-        # Always fall back to index.html for SPA routes
+            candidates.append(f"{normalized.rstrip('/')}.html")
+        candidates.append(normalized)
         candidates.append('index.html')
 
-        # Pick the first existing file
-        candidate = None
-        for c in candidates:
-            p = os.path.join(settings.FRONTEND_DIR, c)
-            if os.path.exists(p) and not os.path.isdir(p):
-                candidate = c
-                break
-        if candidate is None:
-            candidate = 'index.html'
+        candidate = next(
+            (c for c in candidates if os.path.exists(os.path.join(settings.FRONTEND_DIR, c)) and not os.path.isdir(os.path.join(settings.FRONTEND_DIR, c))),
+            'index.html'
+        )
 
     file_path = os.path.join(settings.FRONTEND_DIR, candidate)
 
-    # Determine content type from selected file
-    content_type = 'text/html'
-    if candidate.endswith('.css'):
-        content_type = 'text/css'
-    elif candidate.endswith('.js'):
-        content_type = 'application/javascript'
-    elif candidate.endswith(('.png', '.jpg', '.jpeg', '.gif')):
-        ext = candidate.split('.')[-1]
-        content_type = 'image/' + ext
+    # 2) If file exists, stream it back with proper content type
+    if os.path.exists(file_path) and not os.path.isdir(file_path):
+        mime, _ = mimetypes.guess_type(file_path)
+        mime = mime or ('text/html' if candidate.endswith('.html') else 'application/octet-stream')
+        # Binary for images and other binaries
+        binary_exts = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')
+        if candidate.endswith(binary_exts):
+            return FileResponse(open(file_path, 'rb'), content_type=mime)
+        # Text-like files
+        with open(file_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type=mime)
 
-        if os.path.exists(file_path):
-                with open(file_path, 'rb') as f:
-                        return HttpResponse(f.read(), content_type=content_type)
-        # Fallback minimal page to avoid 500 on Render when frontend isn't present
-        fallback_html = f"""
-        <!doctype html>
-        <html>
-            <head>
-                <meta charset='utf-8'>
-                <meta name='viewport' content='width=device-width, initial-scale=1'>
-                <title>Business Nexus</title>
-                <link rel='stylesheet' href='/static/css/style.css'>
-            </head>
-            <body style='padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0f172a;color:#e5e7eb'>
-                <h1>Business Nexus</h1>
-                <p>Frontend file not found at <code>{file_path}</code>.</p>
-                <p>Make sure the <code>frontend</code> folder is deployed and accessible, or set <code>STATICFILES_DIRS</code> correctly.</p>
-                <p><a href='/login_simple/' class='button'>Go to Login</a></p>
-            </body>
-        </html>
-        """
-        return HttpResponse(fallback_html, content_type='text/html')
+    # 3) Fallback minimal page to avoid 500 on Render when frontend isn't present
+    fallback_html = f"""
+    <!doctype html>
+    <html>
+        <head>
+            <meta charset='utf-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1'>
+            <title>Business Nexus</title>
+            <link rel='stylesheet' href='/static/css/style.css'>
+        </head>
+        <body style='padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0f172a;color:#e5e7eb'>
+            <h1>Business Nexus</h1>
+            <p>Frontend file not found at <code>{file_path}</code>.</p>
+            <p>FRONTEND_DIR: <code>{settings.FRONTEND_DIR}</code></p>
+            <p>Make sure the <code>frontend</code> folder is deployed and accessible, or set <code>STATICFILES_DIRS</code> correctly.</p>
+            <p><a href='/login_simple/' class='button'>Go to Login</a></p>
+        </body>
+    </html>
+    """
+    return HttpResponse(fallback_html, content_type='text/html')
 
 urlpatterns = [
     # Admin
@@ -174,6 +170,17 @@ urlpatterns = [
     path('chat_simple/<int:user_id>/', chat_simple_view, name='chat_simple'),  # Direct chat URL
     path('admin-panel/', TemplateView.as_view(template_name='admin.html'), name='admin_panel'),
     path('healthz', lambda r: JsonResponse({'ok': True}), name='healthz'),
+    # Debug: quickly inspect where the frontend is being served from
+    path('debug/frontend-dir', lambda r: JsonResponse({
+        'FRONTEND_DIR': settings.FRONTEND_DIR,
+        'exists': os.path.isdir(settings.FRONTEND_DIR),
+        'has_index': os.path.exists(os.path.join(settings.FRONTEND_DIR, 'index.html'))
+    })),
+    path('debug/frontend-dir/', lambda r: JsonResponse({
+        'FRONTEND_DIR': settings.FRONTEND_DIR,
+        'exists': os.path.isdir(settings.FRONTEND_DIR),
+        'has_index': os.path.exists(os.path.join(settings.FRONTEND_DIR, 'index.html'))
+    })),
     
     # Finally, serve frontend (SPA) catch-all at the end so APIs/admin still work
     re_path(r'^$', serve_frontend, name='home'),

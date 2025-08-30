@@ -5,21 +5,25 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from datetime import datetime
-from pymongo import MongoClient
+from django.conf import settings
 import json
 
-# MongoDB connection - same as in api_views.py
-try:
-    client = MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=5000)
-    client.admin.command('ping')  # Test connection
-    db = client['business_nexus']
-    messages_collection = db['chat_messages']
-    MONGODB_AVAILABLE = True
-    print("MongoDB connected successfully in chat views")
-except Exception as e:
-    print(f"MongoDB connection failed in chat views: {e}")
-    MONGODB_AVAILABLE = False
-    messages_collection = None
+# Optional MongoDB connection – only if enabled in settings
+MONGODB_AVAILABLE = False
+messages_collection = None
+if getattr(settings, 'USE_MONGO', False):
+    try:
+        from pymongo import MongoClient
+        client = MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=5000)
+        client.admin.command('ping')  # Test connection
+        db = client['business_nexus']
+        messages_collection = db['chat_messages']
+        MONGODB_AVAILABLE = True
+        print("MongoDB connected successfully in chat views")
+    except Exception as e:
+        print(f"MongoDB connection failed in chat views: {e}")
+        MONGODB_AVAILABLE = False
+        messages_collection = None
 
 def simple_chat_view(request, user_id):
     """Simple chat interface view"""

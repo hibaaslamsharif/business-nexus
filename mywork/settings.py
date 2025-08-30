@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR  # e.g., /.../src/mywork
 _candidates = [
     PROJECT_ROOT.parent,                 # /.../src
-    PROJECT_ROOT,                        # /.../src/mywork
-    Path.cwd(),                          # working dir (Render: /opt/render/project/src)
     Path('/opt/render/project/src'),
+    Path.cwd(),                          # working dir (Render: /opt/render/project/src)
+    PROJECT_ROOT,                        # /.../src/mywork
     Path('/opt/render/project'),
 ]
 
@@ -34,7 +34,8 @@ REPO_ROOT = None
 FRONTEND_DIR = None
 for cand in _candidates:
     try:
-        if (cand / 'frontend').exists():
+        # Prefer candidates that have a real index.html (avoid empty folders)
+        if (cand / 'frontend' / 'index.html').exists():
             REPO_ROOT = cand
             FRONTEND_DIR = str((cand / 'frontend').resolve())
             break
@@ -43,8 +44,16 @@ for cand in _candidates:
 
 # Fallback to previous behavior if not found
 if FRONTEND_DIR is None:
-    REPO_ROOT = PROJECT_ROOT.parent
-    FRONTEND_DIR = str((REPO_ROOT / 'frontend').resolve())
+    # Last-resort fallbacks (try src first)
+    if (PROJECT_ROOT.parent / 'frontend').exists():
+        REPO_ROOT = PROJECT_ROOT.parent
+        FRONTEND_DIR = str((REPO_ROOT / 'frontend').resolve())
+    elif (Path('/opt/render/project/src') / 'frontend').exists():
+        REPO_ROOT = Path('/opt/render/project/src')
+        FRONTEND_DIR = str((REPO_ROOT / 'frontend').resolve())
+    else:
+        REPO_ROOT = PROJECT_ROOT.parent
+        FRONTEND_DIR = str((REPO_ROOT / 'frontend').resolve())
 
 
 # Quick-start development settings - unsuitable for production
