@@ -20,10 +20,31 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Compute repository root (one level above the Django project folder)
-REPO_ROOT = BASE_DIR.parent
-# Point to the top-level /frontend where the HTML/CSS/JS live
-FRONTEND_DIR = os.path.join(REPO_ROOT, 'frontend')
+# Compute repository root and robustly locate /frontend (Render can run under /opt/render/project/src)
+PROJECT_ROOT = BASE_DIR  # e.g., /.../src/mywork
+_candidates = [
+    PROJECT_ROOT.parent,                 # /.../src
+    PROJECT_ROOT,                        # /.../src/mywork
+    Path.cwd(),                          # working dir (Render: /opt/render/project/src)
+    Path('/opt/render/project/src'),
+    Path('/opt/render/project'),
+]
+
+REPO_ROOT = None
+FRONTEND_DIR = None
+for cand in _candidates:
+    try:
+        if (cand / 'frontend').exists():
+            REPO_ROOT = cand
+            FRONTEND_DIR = str((cand / 'frontend').resolve())
+            break
+    except Exception:
+        continue
+
+# Fallback to previous behavior if not found
+if FRONTEND_DIR is None:
+    REPO_ROOT = PROJECT_ROOT.parent
+    FRONTEND_DIR = str((REPO_ROOT / 'frontend').resolve())
 
 
 # Quick-start development settings - unsuitable for production
@@ -33,14 +54,10 @@ FRONTEND_DIR = os.path.join(REPO_ROOT, 'frontend')
 SECRET_KEY = 'django-insecure-7cyr$ynf0^6ngz_y8ud80*)vr3v6^5!*)jvc41n_&9$^u()hr8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', '1') == '1'
 
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '0.0.0.0',
-    'business-nexus.onrender.com'
-]
+_render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+ALLOWED_HOSTS = ['127.0.0.1','localhost','0.0.0.0'] + ([_render_host] if _render_host else ['business-nexus.onrender.com'])
 
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
@@ -179,21 +196,23 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
-# MongoDB Configuration
-import pymongo
-from pymongo.errors import ConnectionFailure
-
-# Initialize MongoDB with error handling
-try:
-    MONGO_CLIENT = pymongo.MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=1000)
-    MONGO_CLIENT.server_info()  # Test the connection
-    MONGO_DB = MONGO_CLIENT['business_nexus_chat']
-    print("Successfully connected to MongoDB")
-except (ConnectionFailure, pymongo.errors.ServerSelectionTimeoutError) as e:
-    print(f"Warning: Could not connect to MongoDB: {e}")
-    print("Running in SQLite-only mode. Some features may be limited.")
-    MONGO_CLIENT = None
-    MONGO_DB = None
+# Optional MongoDB (disabled by default). Enable with USE_MONGO=1
+USE_MONGO = os.getenv('USE_MONGO', '0') == '1'
+MONGO_CLIENT = None
+MONGO_DB = None
+if USE_MONGO:
+    try:
+        import pymongo
+        from pymongo.errors import ConnectionFailure
+        MONGO_CLIENT = pymongo.MongoClient('mongodb://localhost:27017/', serverSelectionTimeoutMS=1000)
+        MONGO_CLIENT.server_info()  # Test the connection
+        MONGO_DB = MONGO_CLIENT['business_nexus_chat']
+        print("Successfully connected to MongoDB")
+    except Exception as e:
+        print(f"Warning: Could not connect to MongoDB: {e}")
+        print("Running in SQLite-only mode. Some features may be limited.")
+        MONGO_CLIENT = None
+        MONGO_DB = None
 
 # Authentication settings
 LOGIN_URL = 'login'

@@ -1,3 +1,3 @@
-"""Outer settings file is unused. Keep minimal defaults or avoid using this file.
-Prefer running: cd mywork && python3 manage.py runserver 8005
-"""
+# Delegate to inner project settings so both local and Render use the same config
+from mywork.mywork.settings import *  # noqa: F401,F403
+

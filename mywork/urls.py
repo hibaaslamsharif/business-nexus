@@ -23,7 +23,7 @@ from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.static import serve
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse, FileResponse, JsonResponse
 import os
 
 # Import views
@@ -83,8 +83,28 @@ def serve_frontend(request, path=''):
         ext = candidate.split('.')[-1]
         content_type = 'image/' + ext
 
-    with open(file_path, 'rb') as f:
-        return HttpResponse(f.read(), content_type=content_type)
+        if os.path.exists(file_path):
+                with open(file_path, 'rb') as f:
+                        return HttpResponse(f.read(), content_type=content_type)
+        # Fallback minimal page to avoid 500 on Render when frontend isn't present
+        fallback_html = f"""
+        <!doctype html>
+        <html>
+            <head>
+                <meta charset='utf-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1'>
+                <title>Business Nexus</title>
+                <link rel='stylesheet' href='/static/css/style.css'>
+            </head>
+            <body style='padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0f172a;color:#e5e7eb'>
+                <h1>Business Nexus</h1>
+                <p>Frontend file not found at <code>{file_path}</code>.</p>
+                <p>Make sure the <code>frontend</code> folder is deployed and accessible, or set <code>STATICFILES_DIRS</code> correctly.</p>
+                <p><a href='/login_simple/' class='button'>Go to Login</a></p>
+            </body>
+        </html>
+        """
+        return HttpResponse(fallback_html, content_type='text/html')
 
 urlpatterns = [
     # Admin
@@ -153,6 +173,7 @@ urlpatterns = [
     path('chat_legacy/<int:user_id>/', chat_view, name='chat_legacy'),  # Keeping this as a fallback for any existing links
     path('chat_simple/<int:user_id>/', chat_simple_view, name='chat_simple'),  # Direct chat URL
     path('admin-panel/', TemplateView.as_view(template_name='admin.html'), name='admin_panel'),
+    path('healthz', lambda r: JsonResponse({'ok': True}), name='healthz'),
     
     # Finally, serve frontend (SPA) catch-all at the end so APIs/admin still work
     re_path(r'^$', serve_frontend, name='home'),
